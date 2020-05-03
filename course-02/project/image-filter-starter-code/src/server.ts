@@ -32,7 +32,7 @@ import {filterImageFromURL, deleteLocalFiles} from './util/util';
 
   //! END @TODO1
 
-  app.get( "/filteredimage/", ( req: Request, res: Response ) => {
+  app.get( "/filteredimage/", async ( req: Request, res: Response ) => {
     let { image_url } = req.query;
 
     if ( !image_url ) {
@@ -40,8 +40,18 @@ import {filterImageFromURL, deleteLocalFiles} from './util/util';
                 .send("image_url is required");
     }
 
-    return res.status(200)
-              .send(`Image Url param in request:  ${image_url}!`);
+    let filteredImageUrl = await filterImageFromURL(image_url);
+
+    res.sendFile(filteredImageUrl); 
+    res.on('finish', function() {
+      try {
+        let urlsForDelete: string[] = [filteredImageUrl];
+        deleteLocalFiles(urlsForDelete);
+      } catch(e) {
+        console.log("error removing file ", filteredImageUrl); 
+      }
+    });       
+
   } );
 
 
