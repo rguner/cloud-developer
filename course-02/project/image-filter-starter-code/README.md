@@ -1,3 +1,6 @@
+#AWS URL for project2
+http://image-filter-guner-dev.us-east-1.elasticbeanstalk.com/filteredimage?image_url=https://s.turkcell.com.tr/static_lib/assetsv2/common/images/content/turkcell-logo.png
+
 # Udagram Image Filtering Microservice
 
 Udagram is a simple cloud application developed alongside the Udacity Cloud Engineering Nanodegree. It allows users to register and log into a web client, post photos to the feed, and process photos using an image filtering microservice.
