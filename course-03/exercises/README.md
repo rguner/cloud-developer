@@ -50,4 +50,35 @@ Ionic CLI can build the frontend into static HTML/CSS/JavaScript files. These fi
 ```bash
 ionic build
 ```
+
+
+### docker-compose Commands
+
+docker-compose -f docker-compose-build.yaml build --parallel
+docker-compose -f docker-compose-build.yaml push
+
+### Kubernetes Commands
+
+Apply Secret ve ConfigMap files
+
+kubectl apply -f env-configmap.yaml 
+kubectl apply -f env-secret.yaml
+kubectl apply -f aws-secret.yaml
+
+Apply deployment and service files
+kubectl apply -f backend-feed-deployment.yaml
+kubectl apply -f backend-user-deployment.yaml 
+kubectl apply -f frontend-deployment.yaml
+
+kubectl apply -f backend-user-service.yaml 
+kubectl apply -f backend-feed-service.yaml 
+kubectl apply -f frontend-service.yaml 
+kubectl apply -f reverseproxy-service.yaml 
+
+kubectl apply -f reverseproxy-deployment.yaml 
+
+Port Forward:
+kubectl port-forward service/frontend 8100:8100
+kubectl port-forward service/reverseproxy 8080:8080
+
 ***
