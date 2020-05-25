@@ -16,7 +16,7 @@ spec:
         api: external        
     spec:
       containers:
-      - image: rguner/udacity-frontend:latest
+      - image: rguner/udacity-frontend
         name: frontend
         imagePullPolicy: Always          
         ports:
