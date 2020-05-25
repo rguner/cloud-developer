@@ -18,7 +18,11 @@ before_install:
 
 
 install:
-  - docker-compose -f course-03/exercises/udacity-c3-deployment/docker/docker-compose-build.yaml build --parallel 
+  - docker-compose -f course-03/exercises/udacity-c3-deployment/docker/docker-compose-build.yaml build --parallel
+  - kubectl apply -f course-03/exercises/udacity-c3-deployment/k8s/backend-feed-deployment.yaml
+  - kubectl apply -f course-03/exercises/udacity-c3-deployment/k8s/backend-user-deployment.yaml 
+  - kubectl apply -f course-03/exercises/udacity-c3-deployment/k8s/frontend-deployment.yaml
+  - kubectl apply -f course-03/exercises/udacity-c3-deployment/k8s/reverseproxy-deployment.yaml  
 
 
 
