@@ -17,8 +17,8 @@ exports.handler = async (event) => {
     return
   }
 
-  const instanceId = selectInstanceIdToTerminate(allInstances)
-  await terminateInstance(instanceId)
+  //const instanceId = selectInstanceIdToTerminate(allInstances)
+  //await terminateInstance(instanceId)
 }
 
 async function getReservations() {
