@@ -8,7 +8,7 @@ const todosTable = process.env.TODOS
 const docClient = new AWS.DynamoDB.DocumentClient()
 
 export const handler: APIGatewayProxyHandler = async (event: APIGatewayProxyEvent): Promise<APIGatewayProxyResult> => {
-  
+  console.log('getTodos event', event)
   const todosList=getAllTodos()
 
   return {

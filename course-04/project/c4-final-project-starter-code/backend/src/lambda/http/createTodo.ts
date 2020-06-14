@@ -9,12 +9,13 @@ import { TodoItem } from '../../models/TodoItem'
 
 const docClient = new AWS.DynamoDB.DocumentClient()
 const todosTable = process.env.TODOS
+const bucketName = process.env.IMAGES_S3_BUCKET
 
 export const handler: APIGatewayProxyHandler = async (event: APIGatewayProxyEvent): Promise<APIGatewayProxyResult> => {
     console.log('Processing event: ', event)
   
     const newTodo: CreateTodoRequest = JSON.parse(event.body)
-    const newItem = await createTodo(newTodo)
+    const newTodoItem = await createTodo(newTodo)
   
     return {
       statusCode: 201,
@@ -23,7 +24,7 @@ export const handler: APIGatewayProxyHandler = async (event: APIGatewayProxyEven
         'Access-Control-Allow-Credentials': true
       },
       body: JSON.stringify({
-        newItem
+        newTodoItem
       })
     }
   }
@@ -33,9 +34,11 @@ async function createTodo(createTodoRequest: CreateTodoRequest): Promise<TodoIte
   const todoId = uuid.v4()
   const createdAt = new Date().toISOString()
   const newTodoItem = {
+    userId: 'userId',
     todoId,
     createdAt,
     ...createTodoRequest,
+    done: false,
     attachmentUrl: `https://${bucketName}.s3.amazonaws.com/${todoId}`
   }
   console.log('Storing new item: ', newTodoItem)
