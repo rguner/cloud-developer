@@ -32,19 +32,19 @@ async function createTodo(createTodoRequest: CreateTodoRequest): Promise<TodoIte
 
   const todoId = uuid.v4()
   const createdAt = new Date().toISOString()
-  const newItem = {
+  const newTodoItem = {
     todoId,
     createdAt,
     ...createTodoRequest,
     attachmentUrl: `https://${bucketName}.s3.amazonaws.com/${todoId}`
   }
-  console.log('Storing new item: ', newItem)
+  console.log('Storing new item: ', newTodoItem)
 
 
-  await this.docClient.put({
-    TableName: this.todosTable,
-    Item: newItem
+  await docClient.put({
+    TableName: todosTable,
+    Item: newTodoItem
   }).promise()
 
-  return newItem
+  return newTodoItem
 }
