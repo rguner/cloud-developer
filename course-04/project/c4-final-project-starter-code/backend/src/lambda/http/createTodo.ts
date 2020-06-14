@@ -35,9 +35,10 @@ async function createTodo(createTodoRequest: CreateTodoRequest): Promise<TodoIte
   const createdAt = new Date().toISOString()
   const newTodoItem = {
     userId: 'userId',
-    todoId,
-    createdAt,
-    ...createTodoRequest,
+    todoId : todoId,
+    createdAt : createdAt,
+    name: createTodoRequest.name,
+    dueDate: createTodoRequest.dueDate,
     done: false,
     attachmentUrl: `https://${bucketName}.s3.amazonaws.com/${todoId}`
   }
