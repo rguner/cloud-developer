@@ -114,12 +114,8 @@ resources:
       Type: AWS::DynamoDB::Table
       Properties:
           AttributeDefinitions:
-            - AttributeName: partitionKey
-              AttributeType: S
-            - AttributeName: sortKey
-              AttributeType: S
-            - AttributeName: indexKey
-              AttributeType: S
+            - AttributeName: userId
+              AttributeType: S  
             - AttributeName: todoId
               AttributeType: S
             - AttributeName: createdAt
@@ -129,40 +125,26 @@ resources:
             - AttributeName: dueDate
               AttributeType: S
             - AttributeName: done
-              AttributeType: BOOL
+              AttributeType: B
             - AttributeName: attachmentUrl
-              AttributeType: S 
+              AttributeType: S
           KeySchema:
-            - AttributeName: partitionKey
+            - AttributeName: userId
               KeyType: HASH
-            - AttributeName: sortKey
+            - AttributeName: todoId
               KeyType: RANGE
           BillingMode: PAY_PER_REQUEST
           TableName: ${self:provider.environment.TODOS_TABLE}
-          LocalSecondaryIndexes:
-            - IndexName: ${self:provider.environment.TODOS_ID_INDEX}
-              KeySchema:
-                - AttributeName: partitionKey
-                  KeyType: HASH
-                - AttributeName: indexKey
-                  KeyType: RANGE
-              Projection:
-                ProjectionType: ALL
+          GlobalSecondaryIndexes:
+          - IndexName: ${self:provider.environment.TODOS_INDEX_NAME}
+            KeySchema:
+              - AttributeName: todoId
+                KeyType: HASH
+              - AttributeName: createdAt
+                KeyType: RANGE
+            Projection:
+              ProjectionType: ALL # What attributes will be copied to an index
 
-
-    WebSocketConnectionsDynamoDBTable:
-      Type: AWS::DynamoDB::Table
-      Properties:
-        AttributeDefinitions:
-          -
-            AttributeName: id
-            AttributeType: S
-        KeySchema:
-          -
-            AttributeName: id
-            KeyType: HASH
-        BillingMode: PAY_PER_REQUEST
-        TableName: ${self:provider.environment.CONNECTIONS_TABLE}
 
     RequestBodyValidator:
       Type: AWS::ApiGateway::RequestValidator
@@ -175,13 +157,8 @@ resources:
 
     AttachmentsBucket:
       Type: AWS::S3::Bucket
-      DependsOn: SNSTopicPolicy
       Properties:
         BucketName: ${self:provider.environment.IMAGES_S3_BUCKET}
-        NotificationConfiguration:
-          TopicConfigurations:
-            - Event: s3:ObjectCreated:Put
-              Topic: !Ref ImagesTopic
         CorsConfiguration:
           CorsRules:
             -
