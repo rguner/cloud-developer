@@ -7,10 +7,44 @@ plugins:
 
 provider:
   name: aws
-  runtime: nodejs8.10
+  runtime: nodejs12.x
 
   stage: ${opt:stage, 'dev'}
   region: ${opt:region, 'us-east-1'}
+
+
+  environment:
+    TODOS_TABLE: Todos-${self:provider.stage}
+    TODOS_ID_INDEX: TodosIdIndex
+    IMAGES_S3_BUCKET: todos-images-${self:provider.stage}
+    AUTH_0_SECRET_ID: Auth0Secret-${self:provider.stage}
+    AUTH_0_SECRET_FIELD: auth0Secret
+
+  iamRoleStatements:
+    - Effect: Allow
+      Action:
+        - dynamodb:Scan
+        - dynamodb:PutItem
+        - dynamodb:GetItem
+      Resource: arn:aws:dynamodb:${self:provider.region}:*:table/${self:provider.environment.TODOS_TABLE}
+    - Effect: Allow
+      Action:
+        - dynamodb:Query
+      Resource: arn:aws:dynamodb:${self:provider.region}:*:table/${self:provider.environment.TODOS_TABLE}/index/${self:provider.environment.TODOS_ID_INDEX}
+    - Effect: Allow
+      Action:
+        - s3:PutObject
+        - s3:GetObject
+      Resource: arn:aws:s3:::${self:provider.environment.IMAGES_S3_BUCKET}/*
+    - Effect: Allow
+      Action:
+        - secretsmanager:GetSecretValue
+      Resource: !Ref Auth0Secret
+    - Effect: Allow
+      Action:
+        - kms:Decrypt
+      Resource: !GetAtt KMSKey.Arn
+
 
 functions:
 
@@ -24,15 +58,16 @@ functions:
       - http:
           method: get
           path: todos
+          cors: true
 
   # TODO: Configure this function
-  GetTodos:
   CreateTodo:
     handler: src/lambda/http/createTodo.handler
     events:
       - http:
           method: post
           path: todos
+          cors: true
 
   # TODO: Configure this function
   UpdateTodo:
@@ -41,6 +76,7 @@ functions:
       - http:
           method: patch
           path: todos/{todoId}
+          cors: true
 
   # TODO: Configure this function
   DeleteTodo:
@@ -49,6 +85,7 @@ functions:
       - http:
           method: delete
           path: todos/{todoId}
+          cors: true
 
   # TODO: Configure this function
   GenerateUploadUrl:
@@ -57,7 +94,154 @@ functions:
       - http:
           method: post
           path: todos/{todoId}/attachment
+          cors: true
+
 
 resources:
   Resources:
-    # TODO: Add any necessary AWS resources
+    GatewayResponseDefault4XX:
+      Type: AWS::ApiGateway::GatewayResponse
+      Properties:
+        ResponseParameters:
+          gatewayresponse.header.Access-Control-Allow-Origin: "'*'"
+          gatewayresponse.header.Access-Control-Allow-Headers: "'Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token'"
+          gatewayresponse.header.Access-Control-Allow-Methods: "'GET,OPTIONS,POST'"
+        ResponseType: DEFAULT_4XX
+        RestApiId:
+          Ref: ApiGatewayRestApi
+
+    TodosDynamoDBTable:
+      Type: AWS::DynamoDB::Table
+      Properties:
+          AttributeDefinitions:
+            - AttributeName: partitionKey
+              AttributeType: S
+            - AttributeName: sortKey
+              AttributeType: S
+            - AttributeName: indexKey
+              AttributeType: S
+            - AttributeName: todoId
+              AttributeType: S
+            - AttributeName: createdAt
+              AttributeType: S
+            - AttributeName: name
+              AttributeType: S
+            - AttributeName: dueDate
+              AttributeType: S
+            - AttributeName: done
+              AttributeType: BOOL
+            - AttributeName: attachmentUrl
+              AttributeType: S 
+          KeySchema:
+            - AttributeName: partitionKey
+              KeyType: HASH
+            - AttributeName: sortKey
+              KeyType: RANGE
+          BillingMode: PAY_PER_REQUEST
+          TableName: ${self:provider.environment.TODOS_TABLE}
+          LocalSecondaryIndexes:
+            - IndexName: ${self:provider.environment.TODOS_ID_INDEX}
+              KeySchema:
+                - AttributeName: partitionKey
+                  KeyType: HASH
+                - AttributeName: indexKey
+                  KeyType: RANGE
+              Projection:
+                ProjectionType: ALL
+
+
+    WebSocketConnectionsDynamoDBTable:
+      Type: AWS::DynamoDB::Table
+      Properties:
+        AttributeDefinitions:
+          -
+            AttributeName: id
+            AttributeType: S
+        KeySchema:
+          -
+            AttributeName: id
+            KeyType: HASH
+        BillingMode: PAY_PER_REQUEST
+        TableName: ${self:provider.environment.CONNECTIONS_TABLE}
+
+    RequestBodyValidator:
+      Type: AWS::ApiGateway::RequestValidator
+      Properties:
+        Name: 'request-body-validator'
+        RestApiId:
+          Ref: ApiGatewayRestApi
+        ValidateRequestBody: true
+        ValidateRequestParameters: false
+
+    AttachmentsBucket:
+      Type: AWS::S3::Bucket
+      DependsOn: SNSTopicPolicy
+      Properties:
+        BucketName: ${self:provider.environment.IMAGES_S3_BUCKET}
+        NotificationConfiguration:
+          TopicConfigurations:
+            - Event: s3:ObjectCreated:Put
+              Topic: !Ref ImagesTopic
+        CorsConfiguration:
+          CorsRules:
+            -
+              AllowedOrigins:
+                - '*'
+              AllowedHeaders:
+                - '*'
+              AllowedMethods:
+                - GET
+                - PUT
+                - POST
+                - DELETE
+                - HEAD
+              MaxAge: 3000
+
+    BucketPolicy:
+      Type: AWS::S3::BucketPolicy
+      Properties:
+        PolicyDocument:
+          Id: MyPolicy
+          Version: "2012-10-17"
+          Statement:
+            - Sid: PublicReadForGetBucketObjects
+              Effect: Allow
+              Principal: '*'
+              Action: 's3:GetObject'
+              Resource: 'arn:aws:s3:::${self:provider.environment.IMAGES_S3_BUCKET}/*'
+        Bucket: !Ref AttachmentsBucket
+
+    KMSKey:
+      Type: AWS::KMS::Key
+      Properties:
+        Description: KMS key to encrypt Auth0 secret
+        KeyPolicy:
+          Version: '2012-10-17'
+          Id: key-default-1
+          Statement:
+            - Sid: Allow administration of the key
+              Effect: Allow
+              Principal:
+                AWS:
+                  Fn::Join:
+                  - ':'
+                  - - 'arn:aws:iam:'
+                    - Ref: AWS::AccountId
+                    - 'root'
+              Action:
+                - 'kms:*'
+              Resource: '*'
+
+    KMSKeyAlias:
+      Type: AWS::KMS::Alias
+      Properties:
+        AliasName: alias/auth0Key-${self:provider.stage}
+        TargetKeyId: !Ref KMSKey
+
+    Auth0Secret:
+      Type: AWS::SecretsManager::Secret
+      Properties:
+        Name: ${self:provider.environment.AUTH_0_SECRET_ID}
+        Description: Auth0 secret
+        KmsKeyId: !Ref KMSKey
+
