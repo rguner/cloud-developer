@@ -1,41 +1,57 @@
 import 'source-map-support/register'
-import * as AWS  from 'aws-sdk'
 
-import { APIGatewayProxyEvent, APIGatewayProxyHandler, APIGatewayProxyResult } from 'aws-lambda'
+import {APIGatewayProxyEvent, APIGatewayProxyResult} from 'aws-lambda'
 
-import { UpdateTodoRequest } from '../../requests/UpdateTodoRequest'
-import { TodoItem } from '../../models/TodoItem'
+import * as middy from "middy";
 
-const todosTable = process.env.TODOS
-const docClient = new AWS.DynamoDB.DocumentClient()
+import {cors} from "middy/middlewares";
 
-export const handler: APIGatewayProxyHandler = async (event: APIGatewayProxyEvent): Promise<APIGatewayProxyResult> => {
-  console.log('updateTodo event', event)
-  const todoId = event.pathParameters.todoId
-  const updateTodoRequest: UpdateTodoRequest = JSON.parse(event.body)
+import {getTodo, updateTodo} from '../../businessLogic/todos';
 
-  const todosList=updateTodo(todoId, updateTodoRequest)
+import {UpdateTodoRequest} from '../../interfaces/requests';
 
-  return {
-    statusCode: 201,
-    headers: {
-      'Access-Control-Allow-Origin': '*'
-    },
-    body: JSON.stringify({
-      items: todosList
+import {createLogger} from '../../utils/logger';
+
+const logger = createLogger('updateTodo');
+
+export const handler = middy(async (event: APIGatewayProxyEvent): Promise<APIGatewayProxyResult> => {
+    try {
+        logger.info("Processing event", event);
+        const todoId = event.pathParameters.todoId;
+        const updatedTodo: UpdateTodoRequest = JSON.parse(event.body);
+        const todoItem = await getTodo(todoId, event);
+
+        if (!todoItem) {
+            const message = "Todo does not exist or you are not authorized to update the todo";
+            logger.warning("updateTodo", message);
+            return {
+                statusCode: 404,
+                body: JSON.stringify({
+                    error: message
+                })
+            };
+        }
+
+        await updateTodo(todoId, updatedTodo, event);
+
+        return {
+            statusCode: 200,
+            body: ""
+        };
+    } catch (error) {
+        logger.error("updateTodo", error);
+        return {
+            statusCode: 500,
+            body: JSON.stringify({
+                error
+            })
+        };
+    }
+});
+
+handler.use(
+    cors({
+        origin: "*",
+        credentials: true
     })
-  }
-
-}
-
-async function updateTodo(todoId: string, updateTodoRequest: UpdateTodoRequest): Promise<TodoItem> {
-  console.log('Update todo', todoId, updateTodoRequest)
-
-  const result = await docClient.scan({
-    TableName: todosTable
-  }).promise()
-
-  const items = result.Items
-  console.log(items)
-  return undefined
-}
+);

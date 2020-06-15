@@ -1,54 +1,47 @@
 import 'source-map-support/register'
-import * as AWS  from 'aws-sdk'
-import * as uuid from 'uuid'
 
-import { APIGatewayProxyEvent, APIGatewayProxyHandler, APIGatewayProxyResult } from 'aws-lambda'
+import {APIGatewayProxyEvent, APIGatewayProxyResult} from 'aws-lambda'
 
-import { CreateTodoRequest } from '../../requests/CreateTodoRequest'
-import { TodoItem } from '../../models/TodoItem'
+import {CreateTodoRequest} from '../../interfaces/requests'
 
-const docClient = new AWS.DynamoDB.DocumentClient()
-const todosTable = process.env.TODOS
-const bucketName = process.env.IMAGES_S3_BUCKET
+import {createLogger} from '../../utils/logger';
 
-export const handler: APIGatewayProxyHandler = async (event: APIGatewayProxyEvent): Promise<APIGatewayProxyResult> => {
-    console.log('Processing event: ', event)
-  
-    const newTodo: CreateTodoRequest = JSON.parse(event.body)
-    const newTodoItem = await createTodo(newTodo)
-  
-    return {
-      statusCode: 201,
-      headers: {
-        'Access-Control-Allow-Origin': '*',
-        'Access-Control-Allow-Credentials': true
-      },
-      body: JSON.stringify({
-        newTodoItem
-      })
+import * as middy from "middy";
+import {cors} from "middy/middlewares";
+import {createTodo} from "../../businessLogic/Todos";
+
+const logger = createLogger('createTodo');
+
+export const handler = middy(async (event: APIGatewayProxyEvent): Promise<APIGatewayProxyResult> => {
+    try {
+        logger.info('Processing event:', event);
+
+        const newTodo: CreateTodoRequest = JSON.parse(event.body);
+        const newItem = await createTodo(newTodo, event);
+
+        return {
+            statusCode: 201,
+            body: JSON.stringify({
+                item: newItem
+            })
+        };
+    } catch (error) {
+        logger.error("createTodo", error);
+        return {
+            statusCode: 500,
+            body: JSON.stringify({
+                error
+            })
+        };
     }
-  }
+});
 
-async function createTodo(createTodoRequest: CreateTodoRequest): Promise<TodoItem> {
-
-  const todoId = uuid.v4()
-  const createdAt = new Date().toISOString()
-  const newTodoItem = {
-    userId: 'userId',
-    todoId : todoId,
-    createdAt : createdAt,
-    name: createTodoRequest.name,
-    dueDate: createTodoRequest.dueDate,
-    done: false,
-    attachmentUrl: `https://${bucketName}.s3.amazonaws.com/${todoId}`
-  }
-  console.log('Storing new item: ', newTodoItem)
+handler.use(
+    cors({
+        origin: "*",
+        credentials: true
+    })
+);
 
 
-  await docClient.put({
-    TableName: todosTable,
-    Item: newTodoItem
-  }).promise()
 
-  return newTodoItem
-}

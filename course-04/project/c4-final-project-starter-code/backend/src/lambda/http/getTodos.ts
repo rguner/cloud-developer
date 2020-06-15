@@ -1,35 +1,41 @@
 import 'source-map-support/register'
-import * as AWS  from 'aws-sdk'
 
-import { APIGatewayProxyEvent, APIGatewayProxyResult, APIGatewayProxyHandler } from 'aws-lambda'
-import { TodoItem } from '../../models/TodoItem'
+import {APIGatewayProxyEvent, APIGatewayProxyResult} from 'aws-lambda'
 
-const todosTable = process.env.TODOS
-const docClient = new AWS.DynamoDB.DocumentClient()
+import * as middy from "middy";
+import {cors} from "middy/middlewares";
 
-export const handler: APIGatewayProxyHandler = async (event: APIGatewayProxyEvent): Promise<APIGatewayProxyResult> => {
-  console.log('getTodos event', event)
-  const todosList=getAllTodos()
+import {getAllTodosByUser} from '../../businessLogic/todos';
 
-  return {
-    statusCode: 201,
-    headers: {
-      'Access-Control-Allow-Origin': '*'
-    },
-    body: JSON.stringify({
-      items: todosList
+import {createLogger} from '../../utils/logger'
+
+const logger = createLogger('getTodos')
+
+
+export const handler = middy(async (event: APIGatewayProxyEvent): Promise<APIGatewayProxyResult> => {
+    try {
+        logger.info("Processing event", event);
+        const todos = await getAllTodosByUser(event);
+
+        return {
+            statusCode: 200,
+            body: JSON.stringify({
+                items: todos
+            })
+        };
+    } catch (error) {
+        logger.error("getTodos", error);
+        return {
+            statusCode: 500,
+            body: JSON.stringify({
+                error
+            })
+        };
+    }
+});
+
+handler.use(
+    cors({
+        origin: "*"
     })
-  }
-
-}
-
-async function getAllTodos(): Promise<TodoItem[]> {
-  console.log('Getting all todos')
-
-  const result = await docClient.scan({
-    TableName: todosTable
-  }).promise()
-
-  const items = result.Items
-  return items as TodoItem[]
-}
+);
