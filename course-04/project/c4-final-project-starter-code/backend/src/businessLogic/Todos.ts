@@ -1,7 +1,7 @@
 import * as uuid from "uuid";
 import {CreateTodoRequest, UpdateTodoRequest} from "../interfaces/requests";
 import {TodoItem, TodoUpdate} from "../interfaces/models";
-import {TodoAccess} from "../dataLayer/todoAccess";
+import {TodoAccess} from "../dataLayer/ToDoAccessOperations";
 import {APIGatewayProxyEvent} from "aws-lambda";
 import {AuthHelper} from "../utils/authHelper";
 import {S3Helper} from "../utils/s3Helper";

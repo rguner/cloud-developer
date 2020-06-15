@@ -19,10 +19,10 @@ provider:
     apiGateway: true
 
   environment:
-    APP_NAME: todo-app
+    TODOS_APP_NAME: todo-app
     TODOS_TABLE: Todos-${self:provider.stage}
     TODOS_INDEX_NAME: TodoIdIndex
-    TODOS_S3_BUCKET: ${self:provider.environment.APP_NAME}-s3-bucket-${self:provider.stage}
+    TODOS_S3_BUCKET: ${self:provider.environment.TODOS_APP_NAME}-s3-bucket-${self:provider.stage}
     SIGNED_URL_EXPIRATION: 300
     Auth0JWKSUrl: https://dev-ba5ouksr.us.auth0.com/.well-known/jwks.json
 
@@ -54,7 +54,7 @@ functions:
           path: todos
           authorizer: Auth
           cors: true
-    iamRoleStatementsName: ${self:provider.environment.APP_NAME}-get-todo-role-${self:provider.stage}
+    iamRoleStatementsName: ${self:provider.environment.TODOS_APP_NAME}-get-todo-role-${self:provider.stage}
     iamRoleStatements:
       - Effect: Allow
         Action:
@@ -85,13 +85,13 @@ functions:
             description: Create a new todo item
             requestModels:
               'application/json': CreateTodoRequest
-    iamRoleStatementsName: ${self:provider.environment.APP_NAME}-create-todo-role-${self:provider.stage}
+    iamRoleStatementsName: ${self:provider.environment.TODOS_APP_NAME}-create-todo-role-${self:provider.stage}
     iamRoleStatements:
       - Effect: Allow
         Action:
           - dynamodb:PutItem
         Resource: arn:aws:dynamodb:${self:provider.region}:*:table/${self:provider.environment.TODOS_TABLE}
-      - Effect: Allow # xray permissions (required)
+      - Effect: Allow 
         Action:
           - xray:PutTraceSegments
           - xray:PutTelemetryRecords
@@ -105,7 +105,7 @@ functions:
           path: todos/{todoId}
           authorizer: Auth
           cors: true
-    iamRoleStatementsName: ${self:provider.environment.APP_NAME}-delete-todo-role-${self:provider.stage}
+    iamRoleStatementsName: ${self:provider.environment.TODOS_APP_NAME}-delete-todo-role-${self:provider.stage}
     iamRoleStatements:
       - Effect: Allow
         Action:
@@ -120,7 +120,7 @@ functions:
         Action:
           - s3:DeleteObject
         Resource: "arn:aws:s3:::${self:provider.environment.TODOS_S3_BUCKET}/*"
-      - Effect: Allow # xray permissions (required)
+      - Effect: Allow
         Action:
           - xray:PutTraceSegments
           - xray:PutTelemetryRecords
@@ -140,7 +140,7 @@ functions:
             description: Update a todo item
             requestModels:
               'application/json': UpdateTodoRequest
-    iamRoleStatementsName: ${self:provider.environment.APP_NAME}-update-todo-role-${self:provider.stage}
+    iamRoleStatementsName: ${self:provider.environment.TODOS_APP_NAME}-update-todo-role-${self:provider.stage}
     iamRoleStatements:
       - Effect: Allow
         Action:
@@ -151,7 +151,7 @@ functions:
         Action:
           - dynamodb:Query
         Resource: arn:aws:dynamodb:${self:provider.region}:*:table/${self:provider.environment.TODOS_TABLE}/index/${self:provider.environment.TODOS_INDEX_NAME}
-      - Effect: Allow # xray permissions (required)
+      - Effect: Allow
         Action:
           - xray:PutTraceSegments
           - xray:PutTelemetryRecords
@@ -165,7 +165,7 @@ functions:
           path: todos/{todoId}/attachment
           authorizer: Auth
           cors: true
-    iamRoleStatementsName: ${self:provider.environment.APP_NAME}-s3-todo-upload-role-${self:provider.stage}
+    iamRoleStatementsName: ${self:provider.environment.TODOS_APP_NAME}-s3-todo-upload-role-${self:provider.stage}
     iamRoleStatements:
       - Effect: Allow
         Action:
@@ -180,7 +180,7 @@ functions:
           - s3:PutObject
           - s3:GetObject
         Resource: "arn:aws:s3:::${self:provider.environment.TODOS_S3_BUCKET}/*"
-      - Effect: Allow # xray permissions (required)
+      - Effect: Allow
         Action:
           - xray:PutTraceSegments
           - xray:PutTelemetryRecords
@@ -198,7 +198,7 @@ functions:
                 - Ref: AWS::AccountId
                 - ${self:custom.topicName}
           topicName: ${self:custom.topicName}
-    iamRoleStatementsName: ${self:provider.environment.APP_NAME}-todo-topic-role-${self:provider.stage}
+    iamRoleStatementsName: ${self:provider.environment.TODOS_APP_NAME}-todo-topic-role-${self:provider.stage}
     iamRoleStatements:
       - Effect: Allow
         Action:
@@ -209,7 +209,7 @@ functions:
         Action:
           - dynamodb:Query
         Resource: arn:aws:dynamodb:${self:provider.region}:*:table/${self:provider.environment.TODOS_TABLE}/index/${self:provider.environment.TODOS_INDEX_NAME}
-      - Effect: Allow # xray permissions (required)
+      - Effect: Allow
         Action:
           - xray:PutTraceSegments
           - xray:PutTelemetryRecords
@@ -267,7 +267,7 @@ resources:
               - AttributeName: createdAt
                 KeyType: RANGE
             Projection:
-              ProjectionType: ALL # What attributes will be copied to an index
+              ProjectionType: ALL
 
     TodoAttachmentsBucket:
       Type: AWS::S3::Bucket
