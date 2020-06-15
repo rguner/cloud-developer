@@ -7,9 +7,6 @@ plugins:
   - serverless-aws-documentation
   - serverless-iam-roles-per-function
 
-package:
-  individually: true
-
 provider:
   name: aws
   runtime: nodejs12.x
@@ -27,7 +24,7 @@ provider:
     TODOS_INDEX_NAME: TodoIdIndex
     TODOS_S3_BUCKET: ${self:provider.environment.APP_NAME}-s3-bucket-${self:provider.stage}
     SIGNED_URL_EXPIRATION: 300
-    Auth0JWKSUrl: https://rguner.us.auth0.com/.well-known/jwks.json
+    Auth0JWKSUrl: https://dev-ba5ouksr.us.auth0.com/.well-known/jwks.json
 
 custom:
     documentation:
